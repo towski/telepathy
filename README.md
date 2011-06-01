@@ -13,3 +13,7 @@ Then change the file.
 THE CHANGES ARE PROPAGATED.
 
 LOTS OF BUGS
+
+requires the zeromq library be installed on your system:
+
+  brew install zeromq
