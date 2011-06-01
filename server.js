@@ -121,25 +121,22 @@ function watchFile(file){
       if(!ignoreChange){
         console.log("File "+ file +" changed, building diff")
         fs.readFile(file + '.old', function(err, data){
-          var oldData;
           var dar = new dmp.diff_match_patch();
-          if(err){
-            oldData = ""
-          }else{
-            oldData = data.toString();
-          }
+          var oldData = data.toString();
           var newBuffer = fs.readFileSync(file);
-          var patch = dar.patch_make(oldData, newBuffer.toString())
           fs.open(file + ".old", "w+", 0666, function(err, fd){
             buffer = new Buffer(newBuffer);
             fs.write(fd, buffer, 0, buffer.length)
           })
-          if(server){
-            for(peer in peers){
-              router.send(peers[peer], JSON.stringify({patch: patch, file: file}))
+          if(!err){
+            var patch = dar.patch_make(oldData, newBuffer.toString())
+            if(server){
+              for(peer in peers){
+                router.send(peers[peer], JSON.stringify({patch: patch, file: file}))
+              }
+            } else {
+              router.send("towski", JSON.stringify({patch: patch, file: file}))
             }
-          } else {
-            router.send("towski", JSON.stringify({patch: patch, file: file}))
           }
         })
       } else {
