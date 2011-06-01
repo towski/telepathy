@@ -1,4 +1,4 @@
-# wormhole
+# telepathy
 
 Run this in a directory.
 
