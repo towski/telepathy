@@ -148,12 +148,42 @@ function watchFile(file){
   }
 }
 
-fs.readdir('.', function(err, files){
-  for(fil in files) {
-    var file = files[fil]
-    if(!file.match(/.old$/) && !file.match(/.swp$/)){
-      fs.watchFile(file, watchFile(file));
+function lsStat(file){
+  fs.lstat(file, function(err, stats){
+    if(!err){
+      if(!stats.isSymbolicLink()){
+        if(stats.isDirectory()){
+          fs.readdir(file, recursiveDirectory.bind(file))
+        } else {
+          if(file.match(/.js$/)){
+            fs.stat(file + ".old", function(err, stats){
+              if(err){
+                fs.readFile(file, function(err, data){
+                  fs.open(file + ".old", "w+", 0666, function(err, fd){
+                    var buffer = new Buffer(data)
+                    fs.write(fd, buffer, 0, buffer.length)
+                  })
+                })
+              }
+            })
+            console.log(file)
+            fs.watchFile(file, watchFile(file));
+          }
+        }
+      }
+    }
+  })
+}
+
+function recursiveDirectory(err, files){
+  var directory = this
+  for(index in files) {
+    var file = directory + "/" + files[index]
+    if(!file.match(/.old$/) && !file.match(/.swp$/) && !file.match(/.git$/)){
+      lsStat(file)
     }
   }
-})
+}
+
+fs.readdir('.', recursiveDirectory.bind("."))
 
