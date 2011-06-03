@@ -19,15 +19,17 @@ var context = require('zeromq'),
   dmp = require('diff_match_patch')
   
   
-var browser = mdns.createBrowser('http', 'tcp');
+var browser = mdns.createBrowser(mdns.tcp('telepathy'));
 var foundServer = false,
   peers = [],
+  ip = null,
   message  = '',
   match    = null,
   server = false,
   ignoreChange = false
 
 browser.on('serviceUp', function(info, flags) {
+  ip = info.addresses[0]
   foundServer = true
 });
 
@@ -63,7 +65,7 @@ function updateFile(msg){
 setTimeout(function(){ 
   if(foundServer){
     console.log("Logging in as", name)
-    router.connect("tcp://localhost:5555")
+    router.connect("tcp://"+ip+":5555")
     router.on('message', function(from, msg) {
       updateFile(msg)
     })
@@ -73,7 +75,7 @@ setTimeout(function(){
     process.stdin.resume()
   } else {
     console.log("starting server", name)
-    var ad = mdns.createAdvertisement('http', 4321)
+    var ad = mdns.createAdvertisement(mdns.tcp('telepathy'), 4321)
     ad.start()
     server = true
     router.bind("tcp://*:5555", function() {
@@ -122,13 +124,13 @@ function watchFile(file){
         console.log("File "+ file +" changed, building diff")
         fs.readFile(file + '.old', function(err, data){
           var dar = new dmp.diff_match_patch();
-          var oldData = data.toString();
           var newBuffer = fs.readFileSync(file);
           fs.open(file + ".old", "w+", 0666, function(err, fd){
             buffer = new Buffer(newBuffer);
             fs.write(fd, buffer, 0, buffer.length)
           })
           if(!err){
+            var oldData = data.toString();
             var patch = dar.patch_make(oldData, newBuffer.toString())
             if(server){
               for(peer in peers){
