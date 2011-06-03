@@ -123,13 +123,13 @@ function watchFile(file){
       if(!ignoreChange){
         console.log("File "+ file +" changed, building diff")
         fs.readFile(file + '.old', function(err, data){
-          var dar = new dmp.diff_match_patch();
-          var newBuffer = fs.readFileSync(file);
-          fs.open(file + ".old", "w+", 0666, function(err, fd){
-            buffer = new Buffer(newBuffer);
-            fs.write(fd, buffer, 0, buffer.length)
-          })
           if(!err){
+            var dar = new dmp.diff_match_patch();
+            var newBuffer = fs.readFileSync(file);
+            fs.open(file + ".old", "w+", 0666, function(err, fd){
+              buffer = new Buffer(newBuffer);
+              fs.write(fd, buffer, 0, buffer.length)
+            })
             var oldData = data.toString();
             var patch = dar.patch_make(oldData, newBuffer.toString())
             if(server){
