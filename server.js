@@ -17,8 +17,8 @@ var context = require('zeromq'),
   connect_port  = process.env.CONNECT_PORT || '5555',
   serve_port = process.env.SERVE_PORT || '5555',
   dmp = require('diff_match_patch'),
-  path = require('path')
-  
+  path = require('path'),
+  write = process.env.TELEPATHY_WRITE || false
   
 var browser = mdns.createBrowser(mdns.tcp('telepathy'));
 var foundServer = false,
@@ -68,7 +68,9 @@ setTimeout(function(){
     console.log("Logging in as", name)
     router.connect("tcp://"+ip+":5555")
     router.on('message', function(from, msg) {
-      updateFile(msg)
+      if(write){
+        updateFile(msg)
+      }
     })
     setTimeout(function(){
       router.send("towski","");
