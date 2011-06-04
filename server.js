@@ -16,7 +16,8 @@ var context = require('zeromq'),
   name    = process.env.NAME || process.env.USER,
   connect_port  = process.env.CONNECT_PORT || '5555',
   serve_port = process.env.SERVE_PORT || '5555',
-  dmp = require('diff_match_patch')
+  dmp = require('diff_match_patch'),
+  path = require('path')
   
   
 var browser = mdns.createBrowser(mdns.tcp('telepathy'));
@@ -48,7 +49,7 @@ function updateFile(msg){
       if(err)
         data = ""
       var result = dar.patch_apply(patch, data) 
-      fs.open(file + ".old", "w+", 0666, function(err, fd){
+      fs.open(oldFileName(file), "w+", 0666, function(err, fd){
         fs.write(fd, data, 0, data.length)
       })
       fs.open(file, "w+", 0666, function(err, fd){
@@ -122,11 +123,11 @@ function watchFile(file){
       console.log(ignoreChange)
       if(!ignoreChange){
         console.log("File "+ file +" changed, building diff")
-        fs.readFile(file + '.old', function(err, data){
+        fs.readFile(oldFileName(file), function(err, data){
           if(!err){
             var dar = new dmp.diff_match_patch();
             var newBuffer = fs.readFileSync(file);
-            fs.open(file + ".old", "w+", 0666, function(err, fd){
+            fs.open(oldFileName(file), "w+", 0666, function(err, fd){
               buffer = new Buffer(newBuffer);
               fs.write(fd, buffer, 0, buffer.length)
             })
@@ -148,6 +149,10 @@ function watchFile(file){
   }
 }
 
+function oldFileName(file){
+  return path.dirname(file) + "/." + path.basename(file) + ".old"
+}
+
 function lsStat(file){
   fs.lstat(file, function(err, stats){
     if(!err){
@@ -155,18 +160,17 @@ function lsStat(file){
         if(stats.isDirectory()){
           fs.readdir(file, recursiveDirectory.bind(file))
         } else {
-          if(file.match(/.js$/)){
-            fs.stat(file + ".old", function(err, stats){
+          if(file.match(/.rb$/)){
+            fs.stat(oldFileName(file), function(err, stats){
               if(err){
-                fs.readFile(file, function(err, data){
-                  fs.open(file + ".old", "w+", 0666, function(err, fd){
-                    var buffer = new Buffer(data)
-                    fs.write(fd, buffer, 0, buffer.length)
-                  })
+                var data = fs.readFileSync(file)
+                fs.open(oldFileName(file), "w+", 0666, function(err, fd){
+                  var buffer = new Buffer(data)
+                  fs.write(fd, buffer, 0, buffer.length)
+                  fs.close(fd)
                 })
               }
             })
-            console.log(file)
             fs.watchFile(file, watchFile(file));
           }
         }
@@ -179,7 +183,7 @@ function recursiveDirectory(err, files){
   var directory = this
   for(index in files) {
     var file = directory + "/" + files[index]
-    if(!file.match(/.old$/) && !file.match(/.swp$/) && !file.match(/.git$/)){
+    if(!file.match(/.old$/) && !file.match(/.swp$/) && !file.match(/.git$/) && !file.match(/vendor$/)){
       lsStat(file)
     }
   }
